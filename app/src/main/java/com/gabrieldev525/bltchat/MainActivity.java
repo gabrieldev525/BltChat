@@ -9,6 +9,7 @@ import android.view.View.*;
 import android.widget.*;
 import java.util.*;
 import java.io.*;
+import android.view.ActionMode.*;
 
 public class MainActivity extends Activity {
 	private final String mUUID = "b2dce34f-d7e8-43bb-9c63-29b50f10c267";
@@ -20,6 +21,7 @@ public class MainActivity extends Activity {
 	private ListView pairedDevicesList;
 	private ListView discoveredDevicesList;
 	private Button createServer;
+	private Button sendMessage;
 
 	//adapter
 	ArrayAdapter<String> adapterDiscoveryList;
@@ -29,15 +31,17 @@ public class MainActivity extends Activity {
 	ArrayList<String> devicesPaired;
 	ArrayList<BluetoothDevice> listDevicesPaired = new ArrayList<BluetoothDevice>();
 	ArrayList<String> devicesDiscovery = new ArrayList<String>();
-	
+
 	BluetoothAdapter bluetoothAdapter;
 
 	private BroadcastReceiver receiver;
-
+	
+	public static BluetoothSocket finalSocket;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
+
 
 		//lists init
 		pairedDevicesList = (ListView) findViewById(R.id.devices_paired_listview);
@@ -47,7 +51,7 @@ public class MainActivity extends Activity {
 					final ClientThread client = new ClientThread(listDevicesPaired.get(p3));
 					client.start();
 				}
-		});
+			});
 		discoveredDevicesList = (ListView) findViewById(R.id.devices_discovered_listview);
 
 		//bluetooth system
@@ -80,11 +84,13 @@ public class MainActivity extends Activity {
 				}
 			});
     }
-	
+
 	//server
 	private class ServerThread extends Thread {
 		private final BluetoothServerSocket serverSocket;
 		private UUID uuid;
+
+		AlertDialog dialog;
 
 		public ServerThread() {
 			//alert
@@ -98,19 +104,21 @@ public class MainActivity extends Activity {
 					}
 				});
 			dlg.setCancelable(false);
-			dlg.show();
+
+			dialog = dlg.create();
+			dialog.show();
 			
 			BluetoothServerSocket tmp = null;
-			
+
 			uuid = UUID.fromString(mUUID);
-			
+
 			try {
 				tmp = bluetoothAdapter.listenUsingInsecureRfcommWithServiceRecord(CONN_NAME, uuid);
 			} catch(IOException e) {}
-			
+
 			serverSocket = tmp;
 		}
-		
+
 		@Override
 		public void run() {
 			BluetoothSocket socket = null;
@@ -118,42 +126,39 @@ public class MainActivity extends Activity {
 				try {
 					socket = serverSocket.accept();
 				} catch(IOException e) { break; }
-				
+
 				if(socket != null) { //connected
 					cancel();
-					
+
 					//start activity if connected
 					Intent i = new Intent(MainActivity.this, Chat.class);
 					
-					Object obj[] = {socket};
-					//i.putExtra("socket", obj);
-					
-					Bundle b = new Bundle();
-					b.putSerializable("socket", obj);
-					
-					i.putExtras(b);
+					finalSocket = socket;
 					startActivity(i);
 					
+					dialog.dismiss();
 					break;
 				}
 			}
-			
+
 		}
-		
+
 		public void cancel() {
 			try {
 				serverSocket.close();
 			} catch(IOException e) {}
 		}
 	}
-	
+
 	//client
 	private class ClientThread extends Thread {
 		private final BluetoothSocket socket;
 		private final BluetoothDevice mdevice;
-		
+
 		private UUID uuid;
-		
+
+		AlertDialog dialog;
+
 		public ClientThread(BluetoothDevice device) {
 			//alert
 			AlertDialog.Builder dlg1 = new AlertDialog.Builder(MainActivity.this);
@@ -166,49 +171,53 @@ public class MainActivity extends Activity {
 					}
 				});
 			dlg1.setCancelable(false);
-			dlg1.show();
 			
+			dialog = dlg1.create();
+			dialog.show();
+
 			mdevice = device;
 			BluetoothSocket tmp = null;
-			
+
 			uuid = UUID.fromString(mUUID);
-			
+
 			try {
 				tmp = device.createInsecureRfcommSocketToServiceRecord(uuid);
 			} catch(IOException e) {}
-			
+
 			socket = tmp;
 		}
-		
+
 		@Override
 		public void run() {
 			bluetoothAdapter.cancelDiscovery();
-			
+
 			try {
 				socket.connect();
 			} catch(IOException e) {
 				cancel();
-				
+
 				return;
 			}
-			
+
 			//start activity if connected
 			Intent i = new Intent(MainActivity.this, Chat.class);
 			
-			Object obj[] = {socket};
-			i.putExtra("socket", obj);
+			dialog.dismiss();
 			
-			
+			finalSocket = socket;
 			startActivity(i);
+
 			//manage conection
 		}
-		
+
 		public void cancel() {
 			try {
 				socket.close();
 			} catch(IOException e) {}
 		}
 	}
+
+	
 
 	private void connectBluetooth() {
 		//get the list of all devices paired

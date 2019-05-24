@@ -8,6 +8,7 @@
 		android:id="@+id/chat_output"
 		android:gravity="top"
 		android:enabled="false"
+		android:textColor="#000000"
 		android:layout_width="fill_parent"
         android:layout_height="300dp"/>
 

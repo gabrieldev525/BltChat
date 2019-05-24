@@ -19,8 +19,9 @@ public final class R {
         public static final int createServer=0x7f070003;
         public static final int devices_discovered_listview=0x7f070005;
         public static final int devices_paired_listview=0x7f070004;
-        public static final int search_menu=0x7f070006;
+        public static final int search_menu=0x7f070007;
         public static final int send=0x7f070002;
+        public static final int sendMessage=0x7f070006;
     }
     public static final class layout {
         public static final int chat=0x7f030000;
