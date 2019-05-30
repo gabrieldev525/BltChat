@@ -1,0 +1,9 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <item
+        android:id="@+id/upload_menu"
+        android:title="Enviar"
+		android:showAsAction="always"
+		android:icon="@drawable/upload_button"/>
+    
+</menu>

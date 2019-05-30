@@ -10,10 +10,17 @@ import android.widget.*;
 import java.util.*;
 import java.io.*;
 import android.view.ActionMode.*;
+import android.graphics.drawable.*;
+import android.graphics.*;
+import android.util.*;
 
 public class MainActivity extends Activity {
 	private final String mUUID = "b2dce34f-d7e8-43bb-9c63-29b50f10c267";
 	private final String CONN_NAME = "chat_bluetooth";
+
+	private Utils utils;
+	
+	boolean connected = false;
 
 	//result on activate bluetooth
 	private int REQUEST_ENABLE_BT;
@@ -30,21 +37,25 @@ public class MainActivity extends Activity {
 	Set<BluetoothDevice> pairedDevices;
 	ArrayList<String> devicesPaired;
 	ArrayList<BluetoothDevice> listDevicesPaired = new ArrayList<BluetoothDevice>();
-	ArrayList<String> devicesDiscovery = new ArrayList<String>();
+	ArrayList<String> devicesDiscovery;
 
 	BluetoothAdapter bluetoothAdapter;
 
-	private BroadcastReceiver receiver;
-	
+	//private BroadcastReceiver receiver;
+
+	//the current device socket
 	public static BluetoothSocket finalSocket;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
+		utils = new Utils(MainActivity.this);
 
 		//lists init
 		pairedDevicesList = (ListView) findViewById(R.id.devices_paired_listview);
+		pairedDevicesList.setLayoutParams(new LinearLayout.LayoutParams(utils.getScreenWidth(), utils.getScreenHeight() / 3 * 2));
 		pairedDevicesList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
 				@Override
 				public void onItemClick(AdapterView<?> p1, View p2, int p3, long p4) {
@@ -52,8 +63,11 @@ public class MainActivity extends Activity {
 					client.start();
 				}
 			});
-		discoveredDevicesList = (ListView) findViewById(R.id.devices_discovered_listview);
 
+		//discovered
+		/*discoveredDevicesList = (ListView) findViewById(R.id.devices_discovered_listview);
+		 discoveredDevicesList.setLayoutParams(new LinearLayout.LayoutParams(utils.getScreenWidth(), utils.getScreenHeight() / 3));
+		 */
 		//bluetooth system
 		bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 		if(bluetoothAdapter == null) { //device dont support bluetooth
@@ -63,18 +77,32 @@ public class MainActivity extends Activity {
 				Intent enableBluetoothIntent = new Intent(bluetoothAdapter.ACTION_REQUEST_ENABLE);
 				startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
 
-				if(REQUEST_ENABLE_BT == RESULT_CANCELED) { //user cancel
+				/*
+				if(REQUEST_ENABLE_BT == RESul) {
+					Toast.makeText(getBaseContext(), "blz", Toast.LENGTH_LONG).show();
+					while(true) {
+						if(connected == false && bluetoothAdapter.getState() == BluetoothAdapter.STATE_CONNECTED) {
+							connected = true;
+							connectBluetooth();
+							Toast.makeText(getBaseContext(), "ok", Toast.LENGTH_LONG).show();
+							
+							break;
+						}
+					}
+				} else if(REQUEST_ENABLE_BT == RESULT_CANCELED) { //user cancel
 					Toast.makeText(MainActivity.this, "you need active bluetooth to use this app", Toast.LENGTH_LONG).show();
-				} else if(REQUEST_ENABLE_BT == RESULT_OK) {
-					connectBluetooth();
-				}
+				}*/
 			} else {
 				connectBluetooth();
+				connected = true;
 			}
 		}
 
 		//button
 		createServer = (Button) findViewById(R.id.createServer);
+		LinearLayout.LayoutParams createServerParams = new LinearLayout.LayoutParams(utils.getScreenWidth() / 2, LinearLayout.LayoutParams.WRAP_CONTENT);
+		createServerParams.setMargins((utils.getScreenWidth() - utils.getScreenWidth() / 2) / 2, utils.getScreenHeight() / 30, 0, 0);
+		createServer.setLayoutParams(createServerParams);
 		createServer.setOnClickListener(new OnClickListener() {
 				@Override
 				public void onClick(View p1) {
@@ -83,7 +111,10 @@ public class MainActivity extends Activity {
 					server.start();
 				}
 			});
+			
+		
     }
+	
 
 	//server
 	private class ServerThread extends Thread {
@@ -107,7 +138,7 @@ public class MainActivity extends Activity {
 
 			dialog = dlg.create();
 			dialog.show();
-			
+
 			BluetoothServerSocket tmp = null;
 
 			uuid = UUID.fromString(mUUID);
@@ -132,10 +163,10 @@ public class MainActivity extends Activity {
 
 					//start activity if connected
 					Intent i = new Intent(MainActivity.this, Chat.class);
-					
+
 					finalSocket = socket;
 					startActivity(i);
-					
+
 					dialog.dismiss();
 					break;
 				}
@@ -171,7 +202,7 @@ public class MainActivity extends Activity {
 					}
 				});
 			dlg1.setCancelable(false);
-			
+
 			dialog = dlg1.create();
 			dialog.show();
 
@@ -201,9 +232,9 @@ public class MainActivity extends Activity {
 
 			//start activity if connected
 			Intent i = new Intent(MainActivity.this, Chat.class);
-			
+
 			dialog.dismiss();
-			
+
 			finalSocket = socket;
 			startActivity(i);
 
@@ -217,7 +248,7 @@ public class MainActivity extends Activity {
 		}
 	}
 
-	
+
 
 	private void connectBluetooth() {
 		//get the list of all devices paired
@@ -226,8 +257,9 @@ public class MainActivity extends Activity {
 		if(pairedDevices.size() > 0) {
 			devicesPaired = new ArrayList<String>();
 			for(BluetoothDevice d : pairedDevices) {
-				devicesPaired.add(d.getName() + "\n" + d.getAddress());
+				devicesPaired.add(d.getName());
 				listDevicesPaired.add(d);
+
 			}
 
 			//list all paired devices
@@ -240,48 +272,80 @@ public class MainActivity extends Activity {
 		discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 120);
 		startActivity(discoverableIntent);
 	}
+	
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if(requestCode == REQUEST_ENABLE_BT) {
+			if(resultCode == RESULT_OK) {
+				connectBluetooth();
+			} else if(resultCode == RESULT_CANCELED) {
+				Toast.makeText(getBaseContext(), "you need active bluetooth to use this app", Toast.LENGTH_SHORT).show();
+				Intent enableBluetoothIntent = new Intent(bluetoothAdapter.ACTION_REQUEST_ENABLE);
+				startActivityForResult(enableBluetoothIntent, REQUEST_ENABLE_BT);
+			}
+		}
+		super.onActivityResult(requestCode, resultCode, data);
+	}
+	
 
 	@Override
 	public boolean onMenuItemSelected(int featureId, MenuItem item) {
 
 		switch(item.getItemId()) {
+			
 			case R.id.search_menu:
-				//receiver
-				receiver = new BroadcastReceiver() {
+				/*adapterDiscoveryList = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, android.R.id.text1, devicesDiscovery);
 
-					@Override
-					public void onReceive(Context context, Intent intent) {
-						String action = intent.getAction();
+				 IntentFilter filter = new IntentFilter("bluetooth.PairingRequest");
+				 filter.addAction(BluetoothDevice.ACTION_FOUND);
+				 filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+				 filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
 
-						//when discovery a device
-						if(BluetoothDevice.ACTION_FOUND.equals(action)) {
-							BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-							devicesDiscovery.add(device.getName() + "\n" + device.getAddress());
+				 registerReceiver(PairingRequest, filter);
 
-							Toast.makeText(MainActivity.this, "discovered\n" + device.getName(), Toast.LENGTH_LONG).show();
+				 bluetoothAdapter.startDiscovery();*/
 
-							//list all discovered devices
-							adapterDiscoveryList = new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, android.R.id.text1, devicesDiscovery);
-							discoveredDevicesList.setAdapter(adapterDiscoveryList);
-						}
-					}
 
-				};
-
-				IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-				registerReceiver(receiver, filter);
-
-				break;
 		}
 
-		return false;
+		return true;
 	}
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		getMenuInflater().inflate(R.menu.devices_list_menu, menu);
+		//getMenuInflater().inflate(R.menu.devices_list_menu, menu);
+
+		/*
+		 //change the menu color
+		 Drawable drawable = menu.getItem(0).getIcon(); // change 0 with 1,2 ... 
+		 drawable.mutate();
+		 drawable.setColorFilter(getResources().getColor(Color.WHITE), PorterDuff.Mode.SRC_IN);
+		 */
 		return super.onCreateOptionsMenu(menu);
 	}
 
+
+	private final BroadcastReceiver PairingRequest = new BroadcastReceiver()
+	{
+		@Override
+		public void onReceive(Context ctx, Intent intent) {
+			String action = intent.getAction();
+			if(action.equals(BluetoothDevice.ACTION_FOUND)) {
+				BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+				Log.i("pairing device", device.getName());
+				Toast.makeText(getApplicationContext(), "found", Toast.LENGTH_LONG).show();
+			} else {
+				if(BluetoothDevice.ACTION_UUID.equals(action)) {
+					BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+					Log.i("pairing device --", device.getName());
+					Toast.makeText(getApplicationContext(), "found 2", Toast.LENGTH_LONG).show();
+				} else {
+					if(bluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)) {
+						Toast.makeText(getApplicationContext(), "start", Toast.LENGTH_LONG).show();
+					}
+				}
+			}
+		}
+	};
 
 }

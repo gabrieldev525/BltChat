@@ -2,26 +2,56 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-	android:gravity="center_horizontal">
+	android:gravity="center_horizontal"
+	android:background="#E8E8E8"
+	android:id="@+id/chatLinearLayout"
+	android:fitsSystemWindows="true">
 
-	<EditText
+	<LinearLayout
 		android:id="@+id/chat_output"
 		android:gravity="top"
-		android:enabled="false"
-		android:textColor="#000000"
+		android:orientation="vertical"
 		android:layout_width="fill_parent"
-        android:layout_height="300dp"/>
+        android:layout_height="wrap_content">
+		<ScrollView
+			android:id="@+id/chatOutputScroll"
+			android:layout_width="fill_parent"
+			android:layout_height="fill_parent">
+			
+			<LinearLayout
+				android:id="@+id/chatOutputScrollLayout"
+				android:layout_width="fill_parent"
+				android:layout_height="fill_parent"
+				android:orientation="vertical">
+				
+			</LinearLayout>
+			
+		</ScrollView>
+	</LinearLayout>
 
-    <EditText
-		android:id="@+id/chat_input"
-		android:gravity="top"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content" />
+	<!-- input -->
+	<LinearLayout
+		android:id="@+id/chatLinearLayoutInput"
+		android:layout_width="fill_parent"
+		android:layout_height="wrap_content"
+		android:orientation="horizontal">
+		
+		<EditText
+			android:id="@+id/chat_input"
+			android:gravity="top"
+			android:layout_gravity="top"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:background="@drawable/input_text"/>
 
-	<Button
-		android:id="@+id/send"
-		android:text="send"
-		android:layout_width="wrap_content"
-        android:layout_height="wrap_content" 
-	/>
+		<Button
+			android:id="@+id/sendButton"
+			android:background="#54B3E9"
+			android:textColor="#FFFFFF"
+			android:text="send"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"/>
+
+	</LinearLayout>
+	
 </LinearLayout>
